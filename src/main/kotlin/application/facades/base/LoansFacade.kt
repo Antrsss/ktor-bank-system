@@ -1,8 +1,8 @@
-package com.example.application.facades.loans
+package com.example.application.facades.base
 
-import com.example.application.usecases.CreateUseCase
-import com.example.application.usecases.DeleteUseCase
-import com.example.application.usecases.GetUseCase
+import com.example.application.usecases.base.CreateUseCase
+import com.example.application.usecases.base.DeleteUseCase
+import com.example.application.usecases.base.GetUseCase
 import com.example.application.usecases.loan_obligation.*
 import com.example.domain.LoanStatus
 import com.example.domain.abstracts.Loan

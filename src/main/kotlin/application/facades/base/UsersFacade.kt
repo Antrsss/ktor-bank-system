@@ -1,6 +1,6 @@
-package com.example.application.facades.users
+package com.example.application.facades.base
 
-import com.example.application.usecases.users.*
+import com.example.application.usecases.base.*
 import com.example.domain.abstracts.User
 import java.util.*
 
