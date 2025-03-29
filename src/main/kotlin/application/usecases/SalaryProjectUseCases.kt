@@ -1,51 +1,41 @@
-package com.example.application.usecases.salary_project
+package com.example.application.usecases
 
+import com.example.application.usecases.base.CreateUseCase
+import com.example.application.usecases.base.DeleteUseCase
+import com.example.application.usecases.base.GetUseCase
 import com.example.domain.SalaryProjectStatus
 import com.example.domain.entities.SalaryProject
 import com.example.domain.repositories.SalaryProjectRepository
 import java.util.*
-import javax.security.auth.login.AccountNotFoundException
 
 class CreateSalaryProjectUseCase(
+    salaryProjectRepository: SalaryProjectRepository,
+) : CreateUseCase<SalaryProject>(salaryProjectRepository)
+
+class GetSalaryProjectUseCase(
+    salaryProjectRepository: SalaryProjectRepository,
+) : GetUseCase<SalaryProject>(salaryProjectRepository)
+
+class UpdateSalaryProjectStatusUseCase(
     private val salaryProjectRepository: SalaryProjectRepository,
 ) {
-    suspend fun execute(salaryProject: SalaryProject) {
-        salaryProjectRepository.createSalaryProject(salaryProject)
+    suspend fun execute(salaryProjectId: UUID, newStatus: SalaryProjectStatus): SalaryProject? {
+        val salaryProject = salaryProjectRepository.get(salaryProjectId)
+            ?: return null
+
+        val updatedSalaryProject = salaryProject.copy(status = newStatus)
+        return salaryProjectRepository.update(updatedSalaryProject)
     }
 }
 
-class GetSalaryProjectByIdUseCase(
-    private val salaryProjectRepository: SalaryProjectRepository,
-) {
-    suspend fun execute(salaryProjectId: UUID): SalaryProject? {
-        return salaryProjectRepository.getSalaryProjectById(salaryProjectId)
-    }
-}
+class DeleteSalaryProjectUseCase(
+    salaryProjectRepository: SalaryProjectRepository,
+) : DeleteUseCase<SalaryProject>(salaryProjectRepository)
 
 class GetSalaryProjectsByBankUseCase(
     private val salaryProjectRepository: SalaryProjectRepository,
 ) {
     suspend fun execute(bankUBN: UUID): List<SalaryProject> {
         return salaryProjectRepository.getSalaryProjectsByBank(bankUBN)
-    }
-}
-
-class UpdateSalaryProjectStatusUseCase(
-    private val salaryProjectRepository: SalaryProjectRepository,
-) {
-    suspend fun execute(salaryProjectId: UUID, newStatus: SalaryProjectStatus) {
-        val salaryProject = salaryProjectRepository.getSalaryProjectById(salaryProjectId)
-            ?: throw AccountNotFoundException("Salary project with id $salaryProjectId not found")
-
-        val updatedSalaryProject = salaryProject.copy(status = newStatus)
-        salaryProjectRepository.updateSalaryProject(updatedSalaryProject)
-    }
-}
-
-class DeleteSalaryProjectUseCase(
-    private val salaryProjectRepository: SalaryProjectRepository,
-) {
-    suspend fun execute(salaryProjectId: UUID): Boolean {
-        return salaryProjectRepository.deleteSalaryProject(salaryProjectId)
     }
 }

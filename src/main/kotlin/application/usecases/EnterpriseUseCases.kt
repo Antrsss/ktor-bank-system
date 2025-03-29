@@ -1,74 +1,52 @@
-package com.example.application.usecases.enterprise
+package com.example.application.usecases
 
+import com.example.application.usecases.base.CreateUseCase
+import com.example.application.usecases.base.DeleteUseCase
+import com.example.application.usecases.base.GetUseCase
 import com.example.domain.repositories.EnterpriseRepository
-import com.example.domain.EnterpriseType
 import com.example.domain.entities.Enterprise
 import java.util.UUID
 
 class CreateEnterpriseUseCase(
-    private val enterpriseRepository: EnterpriseRepository
-) {
-    suspend fun execute(enterprise: Enterprise) {
-        enterpriseRepository.createEnterprise(enterprise)
-    }
-}
+    enterpriseRepository: EnterpriseRepository
+) : CreateUseCase<Enterprise>(enterpriseRepository)
 
-class GetEnterpriseByIdUseCase(
-    private val enterpriseRepository: EnterpriseRepository
-) {
-    suspend fun execute(enterpriseId: UUID): Enterprise? {
-        return enterpriseRepository.getEnterpriseById(enterpriseId)
-    }
-}
-
-class GetAllBankEnterprisesUseCase(
-    private val enterpriseRepository: EnterpriseRepository
-) {
-    suspend fun execute(bankUBN: UUID): List<Enterprise> {
-        return enterpriseRepository.getAllBankEnterprises(bankUBN)
-    }
-}
+class GetEnterpriseUseCase(
+    enterpriseRepository: EnterpriseRepository
+) : GetUseCase<Enterprise>(enterpriseRepository)
 
 class UpdateEnterpriseLegalNameUseCase(
     private val enterpriseRepository: EnterpriseRepository
 ) {
-    suspend fun execute(enterpriseId: UUID, newLegalName: String) {
-        val enterprise = enterpriseRepository.getEnterpriseById(enterpriseId)
-            ?: throw IllegalArgumentException("Enterprise not found")
+    suspend fun execute(enterpriseId: UUID, newLegalName: String): Enterprise? {
+        val enterprise = enterpriseRepository.get(enterpriseId)
+            ?: return null
 
         val updatedEnterprise = enterprise.copy(legalName = newLegalName)
-        enterpriseRepository.updateEnterprise(updatedEnterprise)
-    }
-}
-
-class UpdateEnterpriseBankUBNUseCase(
-    private val enterpriseRepository: EnterpriseRepository
-) {
-    suspend fun execute(enterpriseId: UUID, newBankUBN: UUID) {
-        val enterprise = enterpriseRepository.getEnterpriseById(enterpriseId)
-            ?: throw IllegalArgumentException("Enterprise not found")
-
-        val updatedEnterprise = enterprise.copy(bankUBN = newBankUBN)
-        enterpriseRepository.updateEnterprise(updatedEnterprise)
+        return enterpriseRepository.update(updatedEnterprise)
     }
 }
 
 class UpdateEnterpriseLegalAdressUseCase(
     private val enterpriseRepository: EnterpriseRepository
 ) {
-    suspend fun execute(enterpriseId: UUID, newLegalAdress: String) {
-        val enterprise = enterpriseRepository.getEnterpriseById(enterpriseId)
-            ?: throw IllegalArgumentException("Enterprise not found")
+    suspend fun execute(enterpriseId: UUID, newLegalAdress: String): Enterprise? {
+        val enterprise = enterpriseRepository.get(enterpriseId)
+            ?: return null
 
         val updatedEnterprise = enterprise.copy(legalAdress = newLegalAdress)
-        enterpriseRepository.updateEnterprise(updatedEnterprise)
+        return enterpriseRepository.update(updatedEnterprise)
     }
 }
 
 class DeleteEnterpriseUseCase(
+    enterpriseRepository: EnterpriseRepository
+) : DeleteUseCase<Enterprise>(enterpriseRepository)
+
+class GetEnterprisesByBankUseCase(
     private val enterpriseRepository: EnterpriseRepository
 ) {
-    suspend fun execute(enterpriseId: UUID): Boolean {
-        return enterpriseRepository.deleteEnterprise(enterpriseId)
+    suspend fun execute(bankUBN: UUID): List<Enterprise> {
+        return enterpriseRepository.getEnterprisesByBank(bankUBN)
     }
 }

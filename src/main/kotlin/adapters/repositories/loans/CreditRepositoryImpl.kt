@@ -1,9 +1,11 @@
-package com.example.adapters.repositories
+package com.example.adapters.repositories.loans
 
-import com.example.domain.LoanObligationStatus
+import com.example.adapters.repositories.suspendTransaction
+import com.example.domain.LoanStatus
 import com.example.domain.LoanPeriod
 import com.example.domain.entities.loan_obligations.Credit
-import com.example.domain.repositories.LoanRepository
+import com.example.domain.repositories.base.CRUDRepository
+import com.example.domain.repositories.common.LoanRepository
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -19,7 +21,7 @@ object CreditsTable : IntIdTable("credits") {
     val amount = double("amount")
     val period = enumerationByName("period", 50, LoanPeriod::class)
     val individualRate = double("individual_rate").nullable()
-    val status = enumerationByName("status", 50, LoanObligationStatus::class).default(LoanObligationStatus.IN_PROCESS)
+    val status = enumerationByName("status", 50, LoanStatus::class).default(LoanStatus.IN_PROCESS)
     val payedAmount = double("payed_amount").default(0.0)
     val loanId = uuid("loan_id").uniqueIndex()
 }
@@ -61,42 +63,56 @@ fun daoToModel(dao: CreditsDAO) = Credit(
     dao.loanId
 )
 
-class CreditRepositoryImpl : LoanRepository<Credit> {
+class CreditRepositoryImpl: LoanRepository<Credit> {
 
     init {
-        Database.connect(
-            url = "jdbc:postgresql://localhost:5432/bank_db",
-            driver = "org.postgresql.Driver",
-            user = "postgres",
-            password = "625100"
-        )
-
         transaction {
             SchemaUtils.create(CreditsTable)
         }
     }
 
-    override suspend fun createLoan(loan: Credit): Unit = suspendTransaction {
-        if (getLoan(loan.loanId) == null) {
+    override suspend fun create(entity: Credit) = suspendTransaction {
+        if (get(entity.loanId) == null) {
             CreditsDAO.new {
-                ownerId = loan.ownerId
-                bankUBN = loan.bankUBN
-                amount = loan.amount
-                period = loan.period
-                individualRate = loan.individualRate
-                status = loan.status
-                payedAmount = loan.payedAmount
-                loanId = loan.loanId
+                ownerId = entity.ownerId
+                bankUBN = entity.bankUBN
+                amount = entity.amount
+                period = entity.period
+                individualRate = entity.individualRate
+                status = entity.status
+                payedAmount = entity.payedAmount
+                loanId = entity.loanId
             }
         }
     }
 
-    override suspend fun getLoan(loanId: UUID): Credit? = suspendTransaction {
+    override suspend fun get(id: UUID): Credit? = suspendTransaction {
         CreditsDAO
-            .find { CreditsTable.loanId eq loanId }
+            .find { CreditsTable.loanId eq id }
             .limit(1)
             .map(::daoToModel)
             .firstOrNull()
+    }
+
+    override suspend fun delete(entityId: UUID): Boolean = suspendTransaction {
+        val rowsDeleted = CreditsTable.deleteWhere {
+            CreditsTable.loanId eq entityId
+        }
+        rowsDeleted == 1
+    }
+
+    override suspend fun update(entity: Credit): Credit = suspendTransaction {
+        CreditsTable.update({ CreditsTable.loanId eq entity.loanId }) {
+            it[ownerId] = entity.ownerId
+            it[bankUBN] = entity.bankUBN
+            it[amount] = entity.amount
+            it[period] = entity.period
+            it[individualRate] = entity.individualRate
+            it[status] = entity.status
+            it[payedAmount] = entity.payedAmount
+            it[loanId] = entity.loanId
+        }
+        entity
     }
 
     override suspend fun getLoansByOwner(ownerId: UUID): List<Credit> = suspendTransaction {
@@ -109,19 +125,5 @@ class CreditRepositoryImpl : LoanRepository<Credit> {
         CreditsDAO
             .find { CreditsTable.bankUBN eq bankUBN }
             .map(::daoToModel)
-    }
-
-    override suspend fun updateLoan(loan: Credit): Unit = suspendTransaction {
-        CreditsTable.update({ CreditsTable.loanId eq loan.loanId }) {
-            it[status] = loan.status
-            it[payedAmount] = loan.payedAmount
-        }
-    }
-
-    override suspend fun deleteLoan(loanId: UUID): Boolean = suspendTransaction {
-        val rowsDeleted = CreditsTable.deleteWhere {
-            CreditsTable.loanId eq loanId
-        }
-        rowsDeleted == 1
     }
 }

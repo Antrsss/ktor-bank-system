@@ -1,6 +1,5 @@
 package com.example.adapters.controllers.common
 
-import com.example.adapters.controllers.*
 import com.example.application.facades.loans.CreditFacade
 import com.example.application.facades.loans.DeferredPaymentFacade
 import com.example.domain.LoanStatus
@@ -10,7 +9,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
 
-fun Application.loanController(
+fun Application.loansController(
     creditFacade: CreditFacade,
     deferredPaymentFacade: DeferredPaymentFacade
 ) {
@@ -18,7 +17,7 @@ fun Application.loanController(
         route("/api/credits") {
 
             post {
-                call.handleCreateRequest<Credit> { creditFacade.createLoan(it) }
+                call.handlePostRequest<Credit> { creditFacade.createLoan(it) }
             }
 
             route("/get") {
@@ -58,7 +57,7 @@ fun Application.loanController(
         route("/api/deferred-payments") {
 
             post {
-                call.handleCreateRequest<DeferredPayment> { deferredPaymentFacade.createLoan(it) }
+                call.handlePostRequest<DeferredPayment> { deferredPaymentFacade.createLoan(it) }
             }
 
             route("/get") {

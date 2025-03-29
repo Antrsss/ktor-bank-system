@@ -1,96 +1,68 @@
-package com.example.application.usecases.account
+package com.example.application.usecases
 
+import com.example.application.usecases.base.CreateUseCase
+import com.example.application.usecases.base.DeleteUseCase
+import com.example.application.usecases.base.GetUseCase
 import com.example.domain.AccountStatus
 import com.example.domain.entities.Account
 import com.example.domain.repositories.AccountRepository
+import com.example.domain.repositories.base.CRUDRepository
 import java.util.*
-import javax.security.auth.login.AccountNotFoundException
 
 class CreateAccountUseCase(
-    private val accountRepository: AccountRepository
+    crudRepository: CRUDRepository<Account>,
+) : CreateUseCase<Account>(crudRepository)
+
+class GetAccountUseCase(
+    crudRepository: CRUDRepository<Account>,
+) : GetUseCase<Account>(crudRepository)
+
+class UpdateAccountUseCase(
+    private val crudRepository: CRUDRepository<Account>
 ) {
-    suspend fun execute(account: Account): Account {
-        accountRepository.createAccount(account)
-        return account
+    suspend fun execute(accountId: UUID, accountName: String): Account? {
+        val account = crudRepository.get(accountId)
+            ?: return null
+
+        val updatedAccount = account.copy(accountName = accountName)
+        return crudRepository.update(updatedAccount)
+    }
+
+    suspend fun execute(accountId: UUID, balance: Double): Account? {
+        val account = crudRepository.get(accountId)
+            ?: return null
+
+        val updatedAccount = account.copy(balance = balance)
+        return crudRepository.update(updatedAccount)
+    }
+
+    suspend fun execute(accountId: UUID, updatedStatus: AccountStatus): Account? {
+        val account = crudRepository.get(accountId)
+            ?: return null
+
+        val updatedAccount = account.copy(status = updatedStatus)
+        return crudRepository.update(updatedAccount)
     }
 }
 
-class GetAccountByIdUseCase(
-    private val accountRepository: AccountRepository
-) {
-    suspend fun execute(accountId: UUID): Account? {
-        val account = accountRepository.getAccountById(accountId)
-        return account
-    }
-}
+class DeleteAccountUseCase(
+    crudRepository: CRUDRepository<Account>
+) : DeleteUseCase<Account>(crudRepository)
+
+
 
 class GetAccountsByOwnerUseCase(
     private val accountRepository: AccountRepository
 ) {
     suspend fun execute(ownerId: UUID): List<Account> {
-        return accountRepository.getAccountsByOwnerId(ownerId)
+        return accountRepository.getAccountsByOwner(ownerId)
     }
 }
 
-class GetAccountsByBankUBNUseCase(
+class GetAccountsByBankUseCase(
     private val accountRepository: AccountRepository
 ) {
     suspend fun execute(bankUBN: UUID): List<Account> {
-        return accountRepository.getAccountsByBankUBN(bankUBN)
-    }
-}
-
-class GetAllAccountsUseCase(
-    private val accountRepository: AccountRepository
-) {
-    suspend fun execute(): List<Account> {
-        return accountRepository.getAllAccounts()
-    }
-}
-
-class UpdateAccountNameUseCase(
-    private val accountRepository: AccountRepository
-) {
-    suspend fun execute(accountId: UUID, accountName: String): Account {
-        val account = accountRepository.getAccountById(accountId)
-            ?: throw AccountNotFoundException("Account with id $accountId not found")
-
-        val updatedAccount = account.copy(accountName = accountName)
-        accountRepository.updateAccount(account)
-        return updatedAccount
-    }
-}
-
-class UpdateAccountBalanceUseCases(
-    private val accountRepository: AccountRepository
-) {
-    suspend fun execute(accountId: UUID, balance: Double): Account {
-        val account = accountRepository.getAccountById(accountId)
-            ?: throw AccountNotFoundException("Account with id $accountId not found")
-
-        val updatedAccount = account.copy(balance = balance)
-        accountRepository.updateAccount(account)
-        return updatedAccount
-    }
-}
-
-class UpdateAccountStatusUseCases(
-    private val accountRepository: AccountRepository
-) {
-    suspend fun execute(accountId: UUID, status: AccountStatus): Account {
-        val account = accountRepository.getAccountById(accountId)
-            ?: throw AccountNotFoundException("Account with id $accountId not found")
-
-        val updatedAccount = account.copy(status = status)
-        accountRepository.updateAccount(account)
-        return updatedAccount
-    }
-}
-
-class DeleteAccountUseCase(
-    private val accountRepository: AccountRepository
-) {
-    suspend fun execute(accountId: UUID): Boolean {
-        return accountRepository.deleteAccount(accountId)
+        return accountRepository.getAccountsByBank(bankUBN)
     }
 }

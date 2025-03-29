@@ -1,16 +1,17 @@
 package com.example.adapters.controllers.common
 
 import com.example.application.facades.requests.*
+import com.example.application.facades.users.ClientFacade
+import com.example.domain.RequestStatus
 import com.example.domain.entities.requests.*
-import io.ktor.http.*
-import io.ktor.serialization.*
+import com.example.domain.entities.users.Client
 import io.ktor.server.application.*
 import io.ktor.server.request.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.util.*
 
-fun Application.requestController(
+fun Application.requestsController(
+    clientFacade: ClientFacade,
     clientRegistrationRequestFacade: ClientRegistrationRequestFacade,
     creditRequestFacade: CreditRequestFacade,
     deferredPaymentRequestFacade: DeferredPaymentRequestFacade,
@@ -19,354 +20,165 @@ fun Application.requestController(
 ) {
 
     routing {
-        route("/api/requests/clients-registration") {
+        route("/api/requests") {
 
-            post {
-                try {
-                    val clientRegRequest = call.receive<ClientRegistrationRequest>()
-                    clientRegistrationRequestFacade.createRequest(clientRegRequest)
-                    call.respond(HttpStatusCode.Created, clientRegRequest)
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid UUID format")
-                } catch (ex: JsonConvertException) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid JSON format")
-                }
-            }
+            route("/client-registrations") {
 
-            get("/byId/{requestId}") {
-                val requestIdString = call.parameters["requestId"]
-                if (requestIdString == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
-                }
-
-                try {
-                    val requestId = UUID.fromString(requestIdString)
-                    val clientRegRequest = clientRegistrationRequestFacade.getRequest(requestId)
-
-                    if (clientRegRequest == null) {
-                        call.respond(HttpStatusCode.NotFound, "Reg request not found")
-                    } else {
-                        call.respond(HttpStatusCode.OK, clientRegRequest)
+                post {
+                    call.handlePostRequest<ClientRegistrationRequest> {
+                        clientRegistrationRequestFacade.createRequest(it)
                     }
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Incorrect UUID")
-                }
-            }
-
-            get("/byUBN/{bankUBN}") {
-                val bankUBNString = call.parameters["bankUBN"]
-                if (bankUBNString == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
                 }
 
-                try {
-                    val bankUBN = UUID.fromString(bankUBNString)
-                    val clientRegRequestsList = clientRegistrationRequestFacade.getRequestsByBank(bankUBN)
-
-                    if (clientRegRequestsList.isEmpty()) {
-                        call.respond(HttpStatusCode.NotFound, "Bank not found")
-                    } else {
-                        call.respond(HttpStatusCode.OK, clientRegRequestsList)
+                route("/get") {
+                    get("/{id}") {
+                        call.handleGetRequest { clientRegistrationRequestFacade.getRequest(it) }
                     }
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Incorrect UUID")
-                }
-            }
-
-            delete("/{requestId}") {
-                val requestId = UUID.fromString(call.parameters["requestId"])
-                if (requestId == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@delete
-                }
-
-                if (clientRegistrationRequestFacade.deleteRequest(requestId)) {
-                    call.respond(HttpStatusCode.NoContent, "Reg request deleted successfully")
-                } else {
-                    call.respond(HttpStatusCode.NotFound, "Reg request not found")
-                }
-            }
-        }
-
-        route("/api/requests/credits") {
-            post {
-                try {
-                    val creditRequest = call.receive<CreditRequest>()
-                    creditRequestFacade.createRequest(creditRequest)
-                    call.respond(HttpStatusCode.Created, creditRequest)
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid UUID format")
-                } catch (ex: JsonConvertException) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid JSON format")
-                }
-            }
-
-            get("/byId/{requestId}") {
-                val requestIdString = call.parameters["requestId"]
-                if (requestIdString == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
-                }
-
-                try {
-                    val requestId = UUID.fromString(requestIdString)
-                    val creditRequest = creditRequestFacade.getRequest(requestId)
-
-                    if (creditRequest == null) {
-                        call.respond(HttpStatusCode.NotFound, "Credit request not found")
-                    } else {
-                        call.respond(HttpStatusCode.OK, creditRequest)
+                    get("/by-bank/{id}") {
+                        call.handleGetEntitiesByRequest {
+                            clientRegistrationRequestFacade.getRequestsByBank(it)
+                        }
                     }
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Incorrect UUID")
+                }
+
+                put("/update/status/{id}") {
+                    val updatedRequest = call.receive<ClientRegistrationRequest>()
+                    call.handlePutRequest<ClientRegistrationRequest, RequestStatus>(
+                        updateEntity = { id, status -> clientRegistrationRequestFacade.updateRequestStatus(id, status) },
+                        updatedField = updatedRequest.requestStatus
+                    )
+                }
+
+                delete("/{id}") {
+                    call.handleDeleteRequest { clientRegistrationRequestFacade.deleteRequest(it) }
                 }
             }
 
-            get("/byUBN/{bankUBN}") {
-                val bankUBNString = call.parameters["bankUBN"]
-                if (bankUBNString == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
-                }
+            route("/credits") {
 
-                try {
-                    val bankUBN = UUID.fromString(bankUBNString)
-                    val creditRequestsList = creditRequestFacade.getRequestsByBank(bankUBN)
-
-                    if (creditRequestsList.isEmpty()) {
-                        call.respond(HttpStatusCode.NotFound, "Credit request not found")
-                    } else {
-                        call.respond(HttpStatusCode.OK, creditRequestsList)
+                post {
+                    call.handlePostRequest<CreditRequest> {
+                        creditRequestFacade.createRequest(it)
                     }
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Incorrect UUID")
-                }
-            }
-
-            delete("/{requestId}") {
-                val requestId = UUID.fromString(call.parameters["requestId"])
-                if (requestId == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@delete
                 }
 
-                if (creditRequestFacade.deleteRequest(requestId)) {
-                    call.respond(HttpStatusCode.NoContent, "Credit request deleted successfully")
-                } else {
-                    call.respond(HttpStatusCode.NotFound, "Credit request not found")
-                }
-            }
-        }
-
-        route("/api/requests/deferred-payments") {
-
-            post {
-                try {
-                    val deferredPaymentRequest = call.receive<DeferredPaymentRequest>()
-                    deferredPaymentRequestFacade.createRequest(deferredPaymentRequest)
-                    call.respond(HttpStatusCode.Created, deferredPaymentRequest)
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid UUID format")
-                } catch (ex: JsonConvertException) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid JSON format")
-                }
-            }
-
-            get("/byId/{requestId}") {
-                val requestIdString = call.parameters["requestId"]
-                if (requestIdString == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
-                }
-
-                try {
-                    val requestId = UUID.fromString(requestIdString)
-                    val deferredPaymentRequest = deferredPaymentRequestFacade.getRequest(requestId)
-
-                    if (deferredPaymentRequest == null) {
-                        call.respond(HttpStatusCode.NotFound, "Deff payment request not found")
-                    } else {
-                        call.respond(HttpStatusCode.OK, deferredPaymentRequest)
+                route("/get") {
+                    get("/{id}") {
+                        call.handleGetRequest { creditRequestFacade.getRequest(it) }
                     }
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Incorrect UUID")
-                }
-            }
-
-            get("/byUBN/{bankUBN}") {
-                val bankUBNString = call.parameters["bankUBN"]
-                if (bankUBNString == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
-                }
-
-                try {
-                    val bankUBN = UUID.fromString(bankUBNString)
-                    val deferredPaymentRequestsList = deferredPaymentRequestFacade.getRequestsByBank(bankUBN)
-
-                    if (deferredPaymentRequestsList.isEmpty()) {
-                        call.respond(HttpStatusCode.NotFound, "Def payment request not found")
-                    } else {
-                        call.respond(HttpStatusCode.OK, deferredPaymentRequestsList)
+                    get("/by-bank/{id}") {
+                        call.handleGetEntitiesByRequest {
+                            creditRequestFacade.getRequestsByBank(it)
+                        }
                     }
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Incorrect UUID")
+                }
+
+                put("/update/status/{id}") {
+                    val updatedRequest = call.receive<ClientRegistrationRequest>()
+                    call.handlePutRequest<ClientRegistrationRequest, RequestStatus>(
+                        updateEntity = { id, status -> clientRegistrationRequestFacade.updateRequestStatus(id, status) },
+                        updatedField = updatedRequest.requestStatus
+                    )
+                }
+
+                delete("/{id}") {
+                    call.handleDeleteRequest { creditRequestFacade.deleteRequest(it) }
                 }
             }
 
-            delete("/{requestId}") {
-                val requestId = UUID.fromString(call.parameters["requestId"])
-                if (requestId == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@delete
-                }
+            route("/deferred-payments") {
 
-                if (creditRequestFacade.deleteRequest(requestId)) {
-                    call.respond(HttpStatusCode.NoContent, "Def payment request deleted successfully")
-                } else {
-                    call.respond(HttpStatusCode.NotFound, "Def payment request not found")
-                }
-            }
-        }
-
-        route("/api/requests/salary-projects") {
-            post {
-                try {
-                    val salaryProjectRequest = call.receive<SalaryProjectRequest>()
-                    salaryProjectRequestFacade.createRequest(salaryProjectRequest)
-                    call.respond(HttpStatusCode.Created, salaryProjectRequest)
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid UUID format")
-                } catch (ex: JsonConvertException) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid JSON format")
-                }
-            }
-
-            get("/byId/{requestId}") {
-                val requestIdString = call.parameters["requestId"]
-                if (requestIdString == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
-                }
-
-                try {
-                    val requestId = UUID.fromString(requestIdString)
-                    val salaryProjectRequest = salaryProjectRequestFacade.getRequest(requestId)
-
-                    if (salaryProjectRequest == null) {
-                        call.respond(HttpStatusCode.NotFound, "Salary project request not found")
-                    } else {
-                        call.respond(HttpStatusCode.OK, salaryProjectRequest)
+                post {
+                    call.handlePostRequest<DeferredPaymentRequest> {
+                        deferredPaymentRequestFacade.createRequest(it)
                     }
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Incorrect UUID")
-                }
-            }
-
-            get("/byUBN/{bankUBN}") {
-                val bankUBNString = call.parameters["bankUBN"]
-                if (bankUBNString == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
                 }
 
-                try {
-                    val bankUBN = UUID.fromString(bankUBNString)
-                    val salaryProjectRequestsList = deferredPaymentRequestFacade.getRequestsByBank(bankUBN)
-
-                    if (salaryProjectRequestsList.isEmpty()) {
-                        call.respond(HttpStatusCode.NotFound, "Salary project request not found")
-                    } else {
-                        call.respond(HttpStatusCode.OK, salaryProjectRequestsList)
+                route("/get") {
+                    get("/{id}") {
+                        call.handleGetRequest { deferredPaymentRequestFacade.getRequest(it) }
                     }
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Incorrect UUID")
-                }
-            }
-
-            delete("/{requestId}") {
-                val requestId = UUID.fromString(call.parameters["requestId"])
-                if (requestId == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@delete
-                }
-
-                if (salaryProjectRequestFacade.deleteRequest(requestId)) {
-                    call.respond(HttpStatusCode.NoContent, "Salary project request deleted successfully")
-                } else {
-                    call.respond(HttpStatusCode.NotFound, "Salary project request not found")
-                }
-            }
-        }
-
-        route("/api/requests/transactions") {
-            post {
-                try {
-                    val transactionRequest = call.receive<TransactionRequest>()
-                    transactionRequestFacade.createRequest(transactionRequest)
-                    call.respond(HttpStatusCode.Created, transactionRequest)
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid UUID format")
-                } catch (ex: JsonConvertException) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid JSON format")
-                }
-            }
-
-            get("/byId/{requestId}") {
-                val requestIdString = call.parameters["requestId"]
-                if (requestIdString == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
-                }
-
-                try {
-                    val requestId = UUID.fromString(requestIdString)
-                    val transactionRequest = transactionRequestFacade.getRequest(requestId)
-
-                    if (transactionRequest == null) {
-                        call.respond(HttpStatusCode.NotFound, "Transaction project request not found")
-                    } else {
-                        call.respond(HttpStatusCode.OK, transactionRequest)
+                    get("/by-bank/{id}") {
+                        call.handleGetEntitiesByRequest {
+                            deferredPaymentRequestFacade.getRequestsByBank(it)
+                        }
                     }
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Incorrect UUID")
+                }
+
+                put("/update/status/{id}") {
+                    val updatedRequest = call.receive<ClientRegistrationRequest>()
+                    call.handlePutRequest<ClientRegistrationRequest, RequestStatus>(
+                        updateEntity = { id, status -> clientRegistrationRequestFacade.updateRequestStatus(id, status) },
+                        updatedField = updatedRequest.requestStatus
+                    )
+                }
+
+                delete("/{id}") {
+                    call.handleDeleteRequest { deferredPaymentRequestFacade.deleteRequest(it) }
                 }
             }
 
-            get("/byUBN/{bankUBN}") {
-                val bankUBNString = call.parameters["bankUBN"]
-                if (bankUBNString == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
-                }
+            route("/salary-projects") {
 
-                try {
-                    val bankUBN = UUID.fromString(bankUBNString)
-                    val transactionRequestsList = transactionRequestFacade.getRequestsByBank(bankUBN)
-
-                    if (transactionRequestsList.isEmpty()) {
-                        call.respond(HttpStatusCode.NotFound, "Transaction request not found")
-                    } else {
-                        call.respond(HttpStatusCode.OK, transactionRequestsList)
+                post {
+                    call.handlePostRequest<SalaryProjectRequest> {
+                        salaryProjectRequestFacade.createRequest(it)
                     }
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Incorrect UUID")
+
+                    route("/get") {
+                        get("/{id}") {
+                            call.handleGetRequest { salaryProjectRequestFacade.getRequest(it) }
+                        }
+                        get("/by-bank/{id}") {
+                            call.handleGetEntitiesByRequest {
+                                salaryProjectRequestFacade.getRequestsByBank(it)
+                            }
+                        }
+                    }
+
+                    put("/update/status/{id}") {
+                        val updatedRequest = call.receive<ClientRegistrationRequest>()
+                        call.handlePutRequest<ClientRegistrationRequest, RequestStatus>(
+                            updateEntity = { id, status -> clientRegistrationRequestFacade.updateRequestStatus(id, status) },
+                            updatedField = updatedRequest.requestStatus
+                        )
+                    }
+
+                    delete("/{id}") {
+                        call.handleDeleteRequest { salaryProjectRequestFacade.deleteRequest(it) }
+                    }
                 }
             }
 
-            delete("/{requestId}") {
-                val requestId = UUID.fromString(call.parameters["requestId"])
-                if (requestId == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@delete
+            route("/transactions") {
+
+                post {
+                    call.handlePostRequest<TransactionRequest> {
+                        transactionRequestFacade.createRequest(it)
+                    }
                 }
 
-                if (transactionRequestFacade.deleteRequest(requestId)) {
-                    call.respond(HttpStatusCode.NoContent, "Transaction request deleted successfully")
-                } else {
-                    call.respond(HttpStatusCode.NotFound, "Transaction request not found")
+                route("/get") {
+                    get("/{id}") {
+                        call.handleGetRequest { transactionRequestFacade.getRequest(it) }
+                    }
+                    get("/by-bank/{id}") {
+                        call.handleGetEntitiesByRequest {
+                            transactionRequestFacade.getRequestsByBank(it)
+                        }
+                    }
+                }
+
+                put("/update/status/{id}") {
+                    val updatedRequest = call.receive<ClientRegistrationRequest>()
+                    call.handlePutRequest<ClientRegistrationRequest, RequestStatus>(
+                        updateEntity = { id, status -> clientRegistrationRequestFacade.updateRequestStatus(id, status) },
+                        updatedField = updatedRequest.requestStatus
+                    )
+                }
+
+                delete("/{id}") {
+                    call.handleDeleteRequest { transactionRequestFacade.deleteRequest(it) }
                 }
             }
         }

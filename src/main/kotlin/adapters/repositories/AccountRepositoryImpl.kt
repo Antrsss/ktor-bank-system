@@ -1,8 +1,13 @@
 package com.example.adapters.repositories
 
+import com.example.adapters.repositories.users.ClientDAO
+import com.example.adapters.repositories.users.ClientsTable
+import com.example.adapters.repositories.users.ForeignClientsTable
+import com.example.adapters.repositories.users.OutsideSpecialistsTable
 import com.example.domain.AccountStatus
 import com.example.domain.entities.Account
 import com.example.domain.repositories.AccountRepository
+import com.example.domain.repositories.base.CRUDRepository
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -16,9 +21,9 @@ object AccountsTable : IntIdTable("accounts") {
     val accountName = varchar("account_name", 255)
     val ownerId = uuid("owner_id")
     val bankUBN = uuid("bank_ubn")
-    val balance = double("balance")
-    val status = enumerationByName("status", 20, AccountStatus::class)
-    val accountId = uuid("account_id")
+    val balance = double("balance").default(0.0)
+    val status = enumerationByName("status", 20, AccountStatus::class).default(AccountStatus.ACTIVE)
+    val accountId = uuid("account_id").uniqueIndex()
 }
 
 fun ResultRow.toAccount(): Account {
@@ -55,66 +60,60 @@ fun daoToModel(dao: AccountsDAO) = Account(
 class AccountRepositoryImpl: AccountRepository {
 
     init {
-        Database.connect(
-            url = "jdbc:postgresql://localhost:5432/bank_db",
-            driver = "org.postgresql.Driver",
-            user = "postgres",
-            password = "625100"
-        )
-
-        println("Account table created")
         transaction {
             SchemaUtils.create(AccountsTable)
         }
     }
 
-    override suspend fun createAccount(account: Account): Unit = suspendTransaction {
+    override suspend fun create(entity: Account): Unit = suspendTransaction {
         AccountsDAO.new {
-            account.accountName
-            account.ownerId
-            account.bankUBN
-            account.balance
-            account.status
-            account.accountId
+            accountName = entity.accountName
+            ownerId = entity.ownerId
+            bankUBN = entity.bankUBN
+            balance = entity.balance
+            status = entity.status
+            accountId = entity.accountId
         }
     }
 
-    override suspend fun getAccountById(accountId: UUID): Account? = suspendTransaction {
+    override suspend fun get(id: UUID): Account? = suspendTransaction {
         AccountsDAO
-            .find{ (AccountsTable.accountId eq accountId) }
+            .find{ (AccountsTable.accountId eq id) }
             .limit(1)
             .map(::daoToModel)
             .firstOrNull()
     }
 
-    override suspend fun getAccountsByOwnerId(ownerId: UUID): List<Account> = suspendTransaction {
+    override suspend fun update(entity: Account): Account = suspendTransaction {
+        AccountsTable.update({ AccountsTable.accountId eq entity.accountId }) {
+            it[accountName] = entity.accountName
+            it[ownerId] = entity.ownerId
+            it[bankUBN] = entity.bankUBN
+            it[balance] = entity.balance
+            it[status] = entity.status
+            it[accountId] = entity.accountId
+        }
+        entity
+    }
+
+    override suspend fun delete(entityId: UUID): Boolean = suspendTransaction {
+        val rowsDeleted = AccountsTable.deleteWhere {
+            AccountsTable.accountId eq entityId
+        }
+        rowsDeleted == 1
+    }
+
+
+
+    override suspend fun getAccountsByOwner(ownerId: UUID): List<Account> = suspendTransaction {
         AccountsDAO
             .find{ (AccountsTable.ownerId eq ownerId) }
             .map(::daoToModel)
     }
 
-    override suspend fun getAccountsByBankUBN(bankUBN: UUID): List<Account> = suspendTransaction {
+    override suspend fun getAccountsByBank(bankUBN: UUID): List<Account> = suspendTransaction {
         AccountsDAO
             .find { (AccountsTable.bankUBN eq bankUBN) }
             .map(::daoToModel)
-    }
-
-    override suspend fun getAllAccounts(): List<Account> = suspendTransaction {
-        AccountsDAO.all().map(::daoToModel)
-    }
-
-    override suspend fun updateAccount(account: Account): Unit = suspendTransaction {
-        AccountsTable.update({ AccountsTable.accountId eq account.accountId }) {
-            it[accountName] = account.accountName
-            it[balance] = account.balance
-            it[status] = account.status
-        }
-    }
-
-    override suspend fun deleteAccount(accountId: UUID): Boolean = suspendTransaction {
-        val rowsDeleted = AccountsTable.deleteWhere {
-            AccountsTable.accountId eq accountId
-        }
-        rowsDeleted == 1
     }
 }

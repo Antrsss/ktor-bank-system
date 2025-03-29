@@ -1,0 +1,167 @@
+openapi: 3.0.3
+info:
+  title: Bank API
+  version: 1.0.0
+paths:
+  # Loans endpoints
+  /api/credits:
+    post:
+      summary: Create new credit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credit'
+      responses:
+        '201':
+          description: Credit created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Credit'
+
+  /api/credits/get/{id}:
+    get:
+      summary: Get credit by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Credit details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Credit'
+
+  # Requests endpoints
+  /api/requests/credits:
+    post:
+      summary: Create credit request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditRequest'
+      responses:
+        '201':
+          description: Credit request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditRequest'
+
+components:
+  schemas:
+    Credit:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        ownerId:
+          type: integer
+          format: int64
+          example: 123
+        bankId:
+          type: integer
+          format: int64
+          example: 456
+        amount:
+          type: number
+          format: double
+          example: 10000.50
+        status:
+          type: string
+          enum: [ACTIVE, CLOSED, OVERDUE]
+          example: ACTIVE
+        payedAmount:
+          type: number
+          format: double
+          example: 5000.25
+      required:
+        - ownerId
+        - bankId
+        - amount
+
+    CreditRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        clientId:
+          type: integer
+          format: int64
+          example: 123
+        bankId:
+          type: integer
+          format: int64
+          example: 456
+        amount:
+          type: number
+          format: double
+          example: 10000.50
+        requestStatus:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+          example: PENDING
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T12:00:00Z"
+      required:
+        - clientId
+        - bankId
+        - amount
+        - requestStatus
+
+    DeferredPaymentRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        clientId:
+          type: integer
+          format: int64
+        bankId:
+          type: integer
+          format: int64
+        amount:
+          type: number
+          format: double
+        requestStatus:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+      required:
+        - clientId
+        - bankId
+        - amount
+
+    ClientRegistrationRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        clientId:
+          type: integer
+          format: int64
+        bankId:
+          type: integer
+          format: int64
+        requestStatus:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+      required:
+        - clientId
+        - bankId

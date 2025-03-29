@@ -1,6 +1,6 @@
-package com.example.application.usecases
+package com.example.application.usecases.base
 
-import com.example.domain.repositories.common.CRUDRepository
+import com.example.domain.repositories.base.CRUDRepository
 import java.util.*
 
 abstract class CreateUseCase<T>(
@@ -16,22 +16,6 @@ abstract class GetUseCase<T>(
 ) {
     suspend fun execute(entityId: UUID): T? {
         return crudRepository.get(entityId)
-    }
-}
-
-abstract class GetAllUseCase<T>(
-    private val crudRepository: CRUDRepository<T>
-) {
-    suspend fun execute(): List<T> {
-        return crudRepository.getAll()
-    }
-}
-
-abstract class UpdateUseCase<T>(
-    private val crudRepository: CRUDRepository<T>
-) {
-    suspend fun execute(entity: T): T {
-        return crudRepository.update(entity)
     }
 }
 

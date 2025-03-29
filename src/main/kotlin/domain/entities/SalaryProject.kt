@@ -9,6 +9,7 @@ import java.util.*
 data class SalaryProject(
     @Contextual val bankUBN: UUID,
     @Contextual val enterpriseId: UUID,
+    @Contextual val userId: UUID,
     val status: SalaryProjectStatus,
     @Contextual val salaryProjectId: UUID = UUID.randomUUID()
 )

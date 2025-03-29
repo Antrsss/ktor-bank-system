@@ -4,16 +4,15 @@ import com.example.application.usecases.base.*
 import com.example.domain.abstracts.User
 import java.util.*
 
-abstract class UserFacade<T : User>(
-    private val createUserUseCase: CreateUserUseCase<T>,
-    private val getUserUseCase: GetUserUseCase<T>,
+abstract class UsersFacade<T : User>(
+    private val createUserUseCase: CreateUseCase<T>,
+    private val getUserUseCase: GetUseCase<T>,
     private val getUserByEmailUseCase: GetUserByEmailUseCase<T>,
-    private val getUserByPhoneUseCase: GetUserByPhoneUseCase<T>,
     private val getUsersByBankUseCase: GetUsersByBankUseCase<T>,
-    private val updateUserUseCase: UpdateUserUseCase<T>,
-    private val deleteUserUseCase: DeleteUserUseCase<T>
+    private val updateUserEmailUseCase: UpdateUserEmailUseCase<T>,
+    private val deleteUserUseCase: DeleteUseCase<T>
 ) {
-    suspend fun createUser(user: T): T? {
+    suspend fun createUser(user: T) {
         return createUserUseCase.execute(user)
     }
 
@@ -25,16 +24,12 @@ abstract class UserFacade<T : User>(
         return getUserByEmailUseCase.execute(email)
     }
 
-    suspend fun getUserByPhone(phone: String): T? {
-        return getUserByPhoneUseCase.execute(phone)
-    }
-
     suspend fun getUsersByBank(bankUBN: UUID): List<T> {
         return getUsersByBankUseCase.execute(bankUBN)
     }
 
-    suspend fun updateUser(user: T) {
-        return updateUserUseCase.execute(user)
+    suspend fun updateUserEmail(userId: UUID, newEmail: String): T? {
+        return updateUserEmailUseCase.execute(userId, newEmail)
     }
 
     suspend fun deleteUser(userId: UUID): Boolean {

@@ -1,23 +1,26 @@
 package com.example.domain
 
-import com.example.LoanPeriodSerializer
 import com.example.domain.entities.users.Client
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-
+@Serializable
 enum class Role {
-    ADMIN, CLIENT, MANAGER, OPERATOR, OUTSIDE_SPECIALIST
+    ADMIN, CLIENT, FOREIGN_CLIENT, MANAGER, OPERATOR, OUTSIDE_SPECIALIST
 }
 
+@Serializable
+enum class ClientCountry {
+    RUSSIA, UKRAINE, POLAND, LATVIA
+}
 
+@Serializable
 enum class RequestStatus {
     PENDING, CANCELLED, APPROVED
 }
 
 
 @Serializable
-enum class LoanObligationStatus {
+enum class LoanStatus {
     IN_PROCESS,
     PAYED
 }
@@ -54,6 +57,7 @@ enum class AccountStatus {
     CLOSED,
 }
 
+@Serializable
 enum class SalaryProjectStatus {
     ACTIVE,
     BLOCKED,
@@ -68,7 +72,7 @@ enum class EnterpriseType {
     ZAO
 }
 
-
+@Serializable
 enum class TransactionType {
     DEPOSIT,
     WITHDRAWAL,

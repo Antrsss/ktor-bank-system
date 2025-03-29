@@ -1,29 +1,59 @@
 package com.example
 
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
+import com.example.adapters.controllers.*
+import com.example.adapters.controllers.common.loansController
+import com.example.adapters.controllers.common.requestsController
+import com.example.adapters.controllers.common.usersController
+import com.example.application.facades.*
+import com.example.application.facades.loans.CreditFacade
+import com.example.application.facades.loans.DeferredPaymentFacade
+import com.example.application.facades.requests.*
+import com.example.application.facades.users.*
 import io.ktor.server.application.*
-import io.ktor.server.http.content.*
-import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.plugins.statuspages.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import java.sql.Connection
-import java.sql.DriverManager
-import org.jetbrains.exposed.sql.*
+import org.koin.ktor.ext.inject
 
 fun Application.configureRouting() {
-    install(StatusPages) {
-        exception<Throwable> { call, cause ->
-            call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
-        }
-    }
-    routing {
-        get("/") {
-            call.respondText("Hello World!")
-        }
-        // Static plugin. Try to access `/static/index.html`
-        staticResources("/static", "static")
-    }
+    val accountFacade by inject<AccountFacade>()
+    val bankFacade by inject<BankFacade>()
+    val enterpriseFacade by inject<EnterpriseFacade>()
+    val salaryProjectFacade by inject<SalaryProjectFacade>()
+    val creditFacade by inject<CreditFacade>()
+    val deferredPaymentFacade by inject<DeferredPaymentFacade>()
+
+    val clientFacade by inject<ClientFacade>()
+    val foreignClientFacade by inject<ForeignClientFacade>()
+    val outsideSpecialistFacade by inject<OutsideSpecialistFacade>()
+    val adminFacade by inject<AdminFacade>()
+    val managerFacade by inject<ManagerFacade>()
+    val operatorFacade by inject<OperatorFacade>()
+
+    val transactionFacade by inject<TransactionFacade>()
+    val clientRegistrationRequestFacade by inject<ClientRegistrationRequestFacade>()
+    val creditRequestFacade by inject<CreditRequestFacade>()
+    val deferredPaymentRequestFacade by inject<DeferredPaymentRequestFacade>()
+    val salaryProjectRequestFacade by inject<SalaryProjectRequestFacade>()
+    val transactionRequestFacade by inject<TransactionRequestFacade>()
+
+    accountController(accountFacade)
+    bankController(bankFacade)
+    enterpriseController(enterpriseFacade)
+    salaryProjectController(salaryProjectFacade)
+    loansController(creditFacade, deferredPaymentFacade)
+    usersController(
+        clientFacade = clientFacade,
+        foreignClientFacade = foreignClientFacade,
+        adminFacade = adminFacade,
+        managerFacade = managerFacade,
+        operatorFacade = operatorFacade,
+        outsideSpecialistFacade = outsideSpecialistFacade,
+    )
+    transactionController(transactionFacade)
+    requestsController(
+        clientFacade,
+        clientRegistrationRequestFacade,
+        creditRequestFacade,
+        deferredPaymentRequestFacade,
+        salaryProjectRequestFacade,
+        transactionRequestFacade,
+    )
 }

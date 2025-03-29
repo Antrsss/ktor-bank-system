@@ -3,6 +3,7 @@ val h2_version: String by project
 val kotlin_version: String by project
 val logback_version: String by project
 val postgres_version: String by project
+val ktor_version: String by project
 
 plugins {
     kotlin("jvm") version "2.1.10"
@@ -37,6 +38,16 @@ dependencies {
 
     implementation("org.jetbrains.exposed:exposed-dao:$exposed_version")
     implementation("org.postgresql:postgresql:42.7.3")
+
+    implementation("io.insert-koin:koin-ktor:3.3.0") // Koin для Ktor
+    implementation("io.insert-koin:koin-core:3.3.0") // Основной модуль Koin
+    implementation("io.ktor:ktor-server-core:2.0.0")  // Ktor Core
+    implementation("io.ktor:ktor-server-netty:2.0.0") // Ktor Netty
+
+    // Для OpenAPI генерации
+    implementation("io.ktor:ktor-server-openapi:$ktor_version")
+    implementation("org.webjars:swagger-ui:4.18.1")
+    implementation("io.ktor:ktor-server-resources:$ktor_version")
 
     implementation("com.h2database:h2:$h2_version")
     implementation("org.postgresql:postgresql:$postgres_version")

@@ -8,7 +8,7 @@ import com.example.domain.LoanStatus
 import com.example.domain.abstracts.Loan
 import java.util.*
 
-abstract class LoanFacade<T : Loan>(
+abstract class LoansFacade<T : Loan>(
     private val createLoanUseCase: CreateUseCase<T>,
     private val getLoanUseCase: GetUseCase<T>,
     private val updateLoanUseCase: UpdateLoanUseCase<T>,

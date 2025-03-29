@@ -1,24 +1,9 @@
 package com.example.application.usecases.base
 
+import com.example.domain.RequestStatus
 import com.example.domain.abstracts.Request
-import com.example.domain.repositories.RequestRepository
+import com.example.domain.repositories.common.RequestRepository
 import java.util.UUID
-
-abstract class CreateRequestUseCase<T : Request>(
-    private val repository: RequestRepository<T>
-) {
-    suspend fun execute(request: T) {
-        repository.createRequest(request)
-    }
-}
-
-abstract class GetRequestUseCase<T : Request>(
-    private val repository: RequestRepository<T>
-) {
-    suspend fun execute(requestId: UUID): T? {
-        return repository.getRequest(requestId)
-    }
-}
 
 abstract class GetRequestsByBankUseCase<T : Request>(
     private val repository: RequestRepository<T>
@@ -28,10 +13,14 @@ abstract class GetRequestsByBankUseCase<T : Request>(
     }
 }
 
-abstract class DeleteRequestUseCase<T : Request>(
+abstract class UpdateRequestStatusUseCase<T: Request>(
     private val repository: RequestRepository<T>
 ) {
-    suspend fun execute(requestId: UUID): Boolean {
-        return repository.deleteRequest(requestId)
+    suspend fun execute(requestId: UUID, requestStatus: RequestStatus): T? {
+        val request = repository.get(requestId)
+            ?: return null
+
+        request.requestStatus = requestStatus
+        return repository.update(request)
     }
 }

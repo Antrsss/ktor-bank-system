@@ -1,4 +1,4 @@
-package com.example.application.usecases.transaction
+package com.example.application.facades
 
 import com.example.domain.entities.Transaction
 import com.example.usecases.*
@@ -6,7 +6,7 @@ import java.util.*
 
 class TransactionFacade(
     private val createTransactionUseCase: CreateTransactionUseCase,
-    private val getTransactionByIdUseCase: GetTransactionByIdUseCase,
+    private val getTransactionUseCase: GetTransactionUseCase,
     private val getTransactionsByAccountUseCase: GetTransactionsByAccountUseCase,
     private val getTransactionsByBankUseCase: GetTransactionsByBankUseCase,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
@@ -16,7 +16,7 @@ class TransactionFacade(
     }
 
     suspend fun getTransaction(transactionId: UUID): Transaction? {
-        return getTransactionByIdUseCase.execute(transactionId)
+        return getTransactionUseCase.execute(transactionId)
     }
 
     suspend fun getTransactionsByAccount(accountId: UUID): List<Transaction> {

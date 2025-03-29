@@ -1,33 +1,20 @@
 package com.example.usecases
 
+import com.example.application.usecases.base.CreateUseCase
+import com.example.application.usecases.base.DeleteUseCase
+import com.example.application.usecases.base.GetUseCase
 import com.example.domain.entities.Bank
 import com.example.domain.repositories.BankRepository
-import java.util.UUID
+import com.example.domain.repositories.base.CRUDRepository
+import java.util.*
 
 class CreateBankUseCase(
-    private val bankRepository: BankRepository
-) {
-    suspend fun execute(bank: Bank): Bank {
-        bankRepository.createBank(bank)
-        return bank
-    }
-}
+    bankRepository: BankRepository,
+) : CreateUseCase<Bank>(bankRepository)
 
-class GetBankByUBNUseCase(
-    private val bankRepository: BankRepository
-) {
-    suspend fun execute(bankUBN: UUID): Bank? {
-        return bankRepository.getBankByUBN(bankUBN)
-    }
-}
-
-class GetBankByNameUseCase(
-    private val bankRepository: BankRepository
-) {
-    suspend fun execute(bankName: String): Bank? {
-        return bankRepository.getBankByName(bankName)
-    }
-}
+class GetBankUseCase(
+    bankRepository: BankRepository
+) : GetUseCase<Bank>(bankRepository)
 
 class GetAllBanksUseCase(
     private val bankRepository: BankRepository
@@ -37,23 +24,18 @@ class GetAllBanksUseCase(
     }
 }
 
-class UpdateBankUseCase(
+class UpdateBankNameUseCase(
     private val bankRepository: BankRepository
 ) {
-    suspend fun execute(bankUBN: UUID, newName: String): Bank {
-        val bank = bankRepository.getBankByUBN(bankUBN)
-            ?: throw IllegalArgumentException("Bank not found")
+    suspend fun execute(bankUBN: UUID, newName: String): Bank? {
+        val bank = bankRepository.get(bankUBN)
+            ?: return null
 
         val updatedBank = bank.copy(bankName = newName)
-        bankRepository.updateBank(updatedBank)
-        return updatedBank
+        return bankRepository.update(updatedBank)
     }
 }
 
 class DeleteBankUseCase(
-    private val bankRepository: BankRepository
-) {
-    suspend fun execute(bankUBN: UUID): Boolean {
-        return bankRepository.deleteBank(bankUBN)
-    }
-}
+    bankRepository: BankRepository
+) : DeleteUseCase<Bank>(bankRepository)

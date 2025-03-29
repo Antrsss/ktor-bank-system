@@ -1,16 +1,20 @@
 package com.example.adapters.repositories.users
 
+import com.example.adapters.repositories.AccountsDAO
+import com.example.adapters.repositories.AccountsTable
+import com.example.adapters.repositories.requests.DeferredPaymentRequestDAO.Companion.referrersOn
 import com.example.adapters.repositories.suspendTransaction
 import com.example.domain.entities.users.Client
-import com.example.domain.repositories.common.UserRepository
+import com.example.domain.repositories.common.UsersRepository
 import java.util.*
 import com.example.domain.Role
+import com.example.domain.entities.Account
+import com.example.domain.repositories.base.CRUDRepository
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
@@ -66,45 +70,60 @@ fun daoToModel(dao: ClientDAO) = Client(
     userId = dao.userId
 )
 
-class ClientRepositoryImpl : UserRepository<Client> {
+class ClientRepositoryImpl : CRUDRepository<Client>, UsersRepository<Client> {
 
     init {
-        Database.connect(
-            url = "jdbc:postgresql://localhost:5432/bank_db",
-            driver = "org.postgresql.Driver",
-            user = "postgres",
-            password = "625100"
-        )
-
         transaction {
             SchemaUtils.create(ClientsTable)
         }
     }
 
-    override suspend fun createUser(user: Client): Client? = suspendTransaction {
-        if (getUser(user.userId) == null) {
+    override suspend fun create(entity: Client) = suspendTransaction {
+        if (get(entity.userId) == null) {
             ClientDAO.new {
-                FIO = user.FIO
-                passportSeries = user.passportSeries
-                passportNumber = user.passportNumber
-                phone = user.phone
-                email = user.email
-                password = user.password
-                bankUBN = user.bankUBN
-                userId = user.userId
+                FIO = entity.FIO
+                passportSeries = entity.passportSeries
+                passportNumber = entity.passportNumber
+                phone = entity.phone
+                email = entity.email
+                password = entity.password
+                bankUBN = entity.bankUBN
+                userId = entity.userId
                 role = Role.CLIENT
             }.let { daoToModel(it) }
-        } else {
-            null
         }
     }
 
-    override suspend fun getUser(userId: UUID): Client? = suspendTransaction {
+    override suspend fun get(id: UUID): Client? = suspendTransaction {
         ClientDAO
-            .find { ClientsTable.userId eq userId }
+            .find { ClientsTable.userId eq id }
             .limit(1)
             .map(::daoToModel)
             .firstOrNull()
+    }
+
+    override suspend fun delete(entityId: UUID): Boolean = suspendTransaction {
+        val rowsDeleted = ClientsTable.deleteWhere {
+            ClientsTable.userId eq entityId
+        }
+        rowsDeleted == 1
+    }
+
+    override suspend fun update(entity: Client): Client = suspendTransaction {
+        ClientDAO
+            .find { ClientsTable.userId eq entity.userId }
+            .limit(1)
+            .firstOrNull()
+            ?.apply {
+                FIO = entity.FIO
+                passportSeries = entity.passportSeries
+                passportNumber = entity.passportNumber
+                phone = entity.phone
+                email = entity.email
+                password = entity.password
+                bankUBN = entity.bankUBN
+            }
+        entity
     }
 
     override suspend fun getUserByEmail(email: String): Client? = suspendTransaction {
@@ -115,40 +134,9 @@ class ClientRepositoryImpl : UserRepository<Client> {
             .firstOrNull()
     }
 
-    override suspend fun getUserByPhone(phone: String): Client? = suspendTransaction {
-        ClientDAO
-            .find { ClientsTable.phone eq phone }
-            .limit(1)
-            .map(::daoToModel)
-            .firstOrNull()
-    }
-
     override suspend fun getUsersByBank(bankUBN: UUID): List<Client> = suspendTransaction {
         ClientDAO
             .find { ClientsTable.bankUBN eq bankUBN }
             .map(::daoToModel)
-    }
-
-    override suspend fun updateUser(user: Client): Unit = suspendTransaction {
-        ClientDAO
-            .find { ClientsTable.userId eq user.userId }
-            .limit(1)
-            .firstOrNull()
-            ?.apply {
-                FIO = user.FIO
-                passportSeries = user.passportSeries
-                passportNumber = user.passportNumber
-                phone = user.phone
-                email = user.email
-                password = user.password
-                bankUBN = user.bankUBN
-            }
-    }
-
-    override suspend fun deleteUser(userId: UUID): Boolean = suspendTransaction {
-        val rowsDeleted = ClientsTable.deleteWhere {
-            ClientsTable.userId eq userId
-        }
-        rowsDeleted == 1
     }
 }

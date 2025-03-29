@@ -1,38 +1,33 @@
-package com.example.application.usecases.enterprise
+package com.example.application.facades
 
+import com.example.application.usecases.*
 import com.example.domain.entities.Enterprise
 import java.util.UUID
 
 class EnterpriseFacade(
     private val createEnterpriseUseCase: CreateEnterpriseUseCase,
-    private val getEnterpriseByIdUseCase: GetEnterpriseByIdUseCase,
-    private val getAllBankEnterprisesUseCase: GetAllBankEnterprisesUseCase,
+    private val getEnterpriseUseCase: GetEnterpriseUseCase,
+    private val getEnterprisesByBankUseCase: GetEnterprisesByBankUseCase,
     private val updateEnterpriseLegalNameUseCase: UpdateEnterpriseLegalNameUseCase,
-    private val updateEnterpriseBankUBNUseCase: UpdateEnterpriseBankUBNUseCase,
     private val updateEnterpriseLegalAdressUseCase: UpdateEnterpriseLegalAdressUseCase,
     private val deleteEnterpriseUseCase: DeleteEnterpriseUseCase,
 ) {
     suspend fun createEnterprise(enterprise: Enterprise) {
         createEnterpriseUseCase.execute(enterprise)
     }
-
-    suspend fun getEnterpriseById(enterpriseId: UUID): Enterprise? {
-        return getEnterpriseByIdUseCase.execute(enterpriseId)
+    suspend fun getEnterprise(enterpriseId: UUID): Enterprise? {
+        return getEnterpriseUseCase.execute(enterpriseId)
     }
 
-    suspend fun getAllBankEnterprises(bankUBN: UUID): List<Enterprise> {
-        return getAllBankEnterprisesUseCase.execute(bankUBN)
+    suspend fun getEnterprisesByBank(bankUBN: UUID): List<Enterprise> {
+        return getEnterprisesByBankUseCase.execute(bankUBN)
     }
 
-    suspend fun updateEnterpriseLegalName(enterpriseId: UUID, newLegalName: String) {
+    suspend fun updateEnterpriseLegalName(enterpriseId: UUID, newLegalName: String): Enterprise? {
         return updateEnterpriseLegalNameUseCase.execute(enterpriseId, newLegalName)
     }
 
-    suspend fun updateEnterpriseBankUBN(enterpriseId: UUID, newBankUBN: UUID) {
-        return updateEnterpriseBankUBNUseCase.execute(enterpriseId, newBankUBN)
-    }
-
-    suspend fun updateEnterpriseLegalAdress(enterpriseId: UUID, newLegalAdress: String) {
+    suspend fun updateEnterpriseLegalAdress(enterpriseId: UUID, newLegalAdress: String): Enterprise? {
         return updateEnterpriseLegalAdressUseCase.execute(enterpriseId, newLegalAdress)
     }
 

@@ -1,16 +1,21 @@
-package com.example.adapters.controllers
+package com.example.adapters.controllers.common
 
+import com.example.json
+import com.example.serializersModule
 import io.ktor.http.*
 import io.ktor.serialization.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
+import kotlinx.serialization.serializer
 import java.util.*
 
-suspend inline fun <reified T : Any> ApplicationCall.handleCreateRequest(createUser: suspend (T) -> Unit) {
+suspend inline fun <reified T : Any> ApplicationCall.handlePostRequest(createUser: suspend (T) -> Unit) {
     try {
         val entity = receive<T>()
         createUser(entity)
+        println(entity)
+        json.encodeToString(entity)
         respond(HttpStatusCode.Created, entity)
     } catch (ex: IllegalArgumentException) {
         respond(HttpStatusCode.BadRequest, "Invalid UUID format")
@@ -21,6 +26,7 @@ suspend inline fun <reified T : Any> ApplicationCall.handleCreateRequest(createU
 
 suspend inline fun <reified T : Any> ApplicationCall.handleGetRequest(getEntity: suspend (UUID) -> T?) {
     val idString = parameters["id"]
+    println("idString: $idString")
     if (idString == null) {
         respond(HttpStatusCode.BadRequest)
         return
@@ -29,12 +35,33 @@ suspend inline fun <reified T : Any> ApplicationCall.handleGetRequest(getEntity:
     try {
         val id = UUID.fromString(idString)
         val entity = getEntity(id)
+        println("entity: $entity")
         if (entity == null) {
             respond(HttpStatusCode.NotFound, "Entity not found")
         } else {
             respond(HttpStatusCode.OK, entity)
         }
     } catch (ex: IllegalArgumentException) {
+        respond(HttpStatusCode.BadRequest, "Incorrect UUID")
+    }
+}
+
+suspend inline fun <reified T : Any> ApplicationCall.handleGetEntityByStringRequest(getEntity: suspend (String) -> T?) {
+    val idString = parameters["id"]
+    if (idString == null) {
+        respond(HttpStatusCode.BadRequest)
+        return
+    }
+
+    try {
+        val entity = getEntity(idString)
+        if (entity == null) {
+            respond(HttpStatusCode.NotFound, "Entity not found")
+        } else {
+            respond(HttpStatusCode.OK, entity)
+        }
+    } catch (ex: IllegalArgumentException) {
+        print(idString)
         respond(HttpStatusCode.BadRequest, "Incorrect UUID")
     }
 }

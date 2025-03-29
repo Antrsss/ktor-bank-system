@@ -3,6 +3,7 @@ package com.example.adapters.repositories
 import com.example.domain.EnterpriseType
 import com.example.domain.entities.Enterprise
 import com.example.domain.repositories.EnterpriseRepository
+import com.example.domain.repositories.base.CRUDRepository
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -18,7 +19,7 @@ object EnterprisesTable : IntIdTable("enterprises") {
     val enterprisePAN = long("enterprise_pan")
     val bankUBN = uuid("bank_ubn")
     val legalAdress = varchar("legal_address", 512)
-    val enterpriseId = uuid("enterprise_id")
+    val enterpriseId = uuid("enterprise_id").uniqueIndex().default(UUID.randomUUID())
 }
 
 fun ResultRow.toEnterprise(): Enterprise {
@@ -55,53 +56,52 @@ fun daoToModel(dao: EnterprisesDAO) = Enterprise(
 class EnterpriseRepositoryImpl: EnterpriseRepository {
 
     init {
-        Database.connect(
-            url = "jdbc:postgresql://localhost:5432/bank_db",
-            driver = "org.postgresql.Driver",
-            user = "postgres",
-            password = "625100"
-        )
-
         transaction {
             SchemaUtils.create(EnterprisesTable)
         }
     }
 
-    override suspend fun createEnterprise(enterprise: Enterprise): Unit = suspendTransaction {
+    override suspend fun create(entity: Enterprise): Unit = suspendTransaction {
         EnterprisesDAO.new {
-            legalName = enterprise.legalName
-            enterpriseType = enterprise.enterpriseType
-            enterprisePAN = enterprise.enterprisePAN
-            bankUBN = enterprise.bankUBN
-            legalAdress = enterprise.legalAdress
-            enterpriseId = enterprise.enterpriseId
+            legalName = entity.legalName
+            enterpriseType = entity.enterpriseType
+            enterprisePAN = entity.enterprisePAN
+            bankUBN = entity.bankUBN
+            legalAdress = entity.legalAdress
+            enterpriseId = entity.enterpriseId
         }
     }
 
-    override suspend fun getEnterpriseById(enterpriseId: UUID): Enterprise? = suspendTransaction {
+    override suspend fun get(id: UUID): Enterprise? = suspendTransaction {
         EnterprisesDAO
-            .find { (EnterprisesTable.enterpriseId eq enterpriseId) }
+            .find { (EnterprisesTable.enterpriseId eq id) }
             .limit(1)
             .map(::daoToModel)
             .firstOrNull()
     }
 
-    override suspend fun getAllBankEnterprises(bankUBN: UUID): List<Enterprise> = suspendTransaction {
-        EnterprisesDAO.all().map(::daoToModel)
-    }
-
-    override suspend fun updateEnterprise(enterprise: Enterprise): Unit = suspendTransaction {
-        EnterprisesTable.update({ EnterprisesTable.enterpriseId eq enterprise.enterpriseId }) {
-            it[legalName] = enterprise.legalName
-            it[enterpriseType] = enterprise.enterpriseType
-            it[legalAdress] = enterprise.legalAdress
-        }
-    }
-
-    override suspend fun deleteEnterprise(enterpriseId: UUID): Boolean = suspendTransaction {
+    override suspend fun delete(entityId: UUID): Boolean = suspendTransaction {
         val rowsDeleted = EnterprisesTable.deleteWhere {
-            EnterprisesTable.enterpriseId eq enterpriseId
+            EnterprisesTable.enterpriseId eq entityId
         }
         rowsDeleted == 1
+    }
+
+    override suspend fun update(entity: Enterprise): Enterprise = suspendTransaction {
+        EnterprisesTable.update({ EnterprisesTable.enterpriseId eq entity.enterpriseId }) {
+            it[legalName] = entity.legalName
+            it[enterpriseType] = entity.enterpriseType
+            it[enterprisePAN] = entity.enterprisePAN
+            it[bankUBN] = entity.bankUBN
+            it[legalAdress] = entity.legalAdress
+            it[enterpriseId] = entity.enterpriseId
+        }
+        entity
+    }
+
+    override suspend fun getEnterprisesByBank(bankUBN: UUID): List<Enterprise> = suspendTransaction {
+        EnterprisesDAO
+            .find { EnterprisesTable.bankUBN eq bankUBN }
+            .map(::daoToModel)
     }
 }

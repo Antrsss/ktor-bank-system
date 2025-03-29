@@ -1,12 +1,13 @@
-package com.example.application.usecases.salary_project
+package com.example.application.facades
 
+import com.example.application.usecases.*
 import com.example.domain.SalaryProjectStatus
 import com.example.domain.entities.SalaryProject
 import java.util.*
 
 class SalaryProjectFacade(
     private val createSalaryProjectUseCase: CreateSalaryProjectUseCase,
-    private val getSalaryProjectByIdUseCase: GetSalaryProjectByIdUseCase,
+    private val getSalaryProjectUseCase: GetSalaryProjectUseCase,
     private val getSalaryProjectsByBankUseCase: GetSalaryProjectsByBankUseCase,
     private val updateSalaryProjectStatusUseCase: UpdateSalaryProjectStatusUseCase,
     private val deleteSalaryProjectUseCase: DeleteSalaryProjectUseCase
@@ -14,9 +15,8 @@ class SalaryProjectFacade(
     suspend fun createSalaryProject(salaryProject: SalaryProject) {
         createSalaryProjectUseCase.execute(salaryProject)
     }
-
-    suspend fun getSalaryProjectById(salaryProjectId: UUID): SalaryProject? {
-        return getSalaryProjectByIdUseCase.execute(salaryProjectId)
+    suspend fun getSalaryProject(salaryProjectId: UUID): SalaryProject? {
+        return getSalaryProjectUseCase.execute(salaryProjectId)
     }
 
     suspend fun getSalaryProjectsByBank(bankUBN: UUID): List<SalaryProject> {

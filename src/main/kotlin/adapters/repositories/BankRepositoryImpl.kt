@@ -2,6 +2,7 @@ package com.example.adapters.repositories
 
 import com.example.domain.entities.Bank
 import com.example.domain.repositories.BankRepository
+import com.example.domain.repositories.base.CRUDRepository
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
@@ -15,7 +16,7 @@ import java.util.*
 
 object BanksTable : IntIdTable("banks") {
     val bankName = varchar("bank_name", 255)
-    val bankUBN: Column<UUID> = uuid("bank_ubn")
+    val bankUBN = uuid("bank_ubn").uniqueIndex()
 }
 
 fun ResultRow.toBank(): Bank {
@@ -40,42 +41,27 @@ fun daoToModel(dao: BanksDAO) = Bank(
     dao.bankUBN,
 )
 
-class BankRepositoryImpl : BankRepository {
+class BankRepositoryImpl: BankRepository {
 
     init {
-        Database.connect(
-            url = "jdbc:postgresql://localhost:5432/bank_db",
-            driver = "org.postgresql.Driver",
-            user = "postgres",
-            password = "625100"
-        )
-
         transaction {
             SchemaUtils.create(BanksTable)
             //SchemaUtils.createMissingTablesAndColumns(Banks)
         }
     }
 
-    override suspend fun createBank(bank: Bank): Unit = suspendTransaction {
-        if (getBankByName(bank.bankName) == null) {
+    override suspend fun create(entity: Bank) = suspendTransaction {
+        if (get(entity.bankUBN) == null) {
             BanksDAO.new {
-                bankName = bank.bankName
-                bankUBN = bank.bankUBN
+                bankName = entity.bankName
+                bankUBN = entity.bankUBN
             }
         }
     }
 
-    override suspend fun getBankByUBN(bankUBN: UUID): Bank? = suspendTransaction {
+    override suspend fun get(id: UUID): Bank? = suspendTransaction {
         BanksDAO
-            .find { (BanksTable.bankUBN eq bankUBN) }
-            .limit(1)
-            .map(::daoToModel)
-            .firstOrNull()
-    }
-
-    override suspend fun getBankByName(bankName: String): Bank? = suspendTransaction {
-        BanksDAO
-            .find { (BanksTable.bankName eq bankName) }
+            .find { (BanksTable.bankUBN eq id) }
             .limit(1)
             .map(::daoToModel)
             .firstOrNull()
@@ -85,16 +71,17 @@ class BankRepositoryImpl : BankRepository {
         BanksDAO.all().map(::daoToModel)
     }
 
-    override suspend fun updateBank(bank: Bank): Unit = suspendTransaction {
-        BanksTable.update({ BanksTable.bankUBN eq bank.bankUBN }) {
-            it[bankName] = bank.bankName
-        }
-    }
-
-    override suspend fun deleteBank(bankUBN: UUID): Boolean = suspendTransaction {
+    override suspend fun delete(entityId: UUID): Boolean = suspendTransaction {
         val rowsDeleted = BanksTable.deleteWhere {
-            BanksTable.bankUBN eq bankUBN
+            BanksTable.bankUBN eq entityId
         }
         rowsDeleted == 1
+    }
+
+    override suspend fun update(entity: Bank): Bank = suspendTransaction {
+        BanksTable.update({ BanksTable.bankUBN eq entity.bankUBN }) {
+            it[bankName] = entity.bankName
+        }
+        entity
     }
 }

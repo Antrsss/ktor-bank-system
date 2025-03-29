@@ -1,122 +1,49 @@
 package com.example.adapters.controllers
 
-import com.example.application.usecases.enterprise.EnterpriseFacade
+import com.example.adapters.controllers.common.*
+import com.example.application.facades.EnterpriseFacade
 import com.example.domain.entities.Enterprise
-import io.ktor.http.*
-import io.ktor.serialization.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import java.util.*
 
 fun Application.enterpriseController(enterpriseFacade: EnterpriseFacade) {
 
     routing {
         route("/api/enterprises") {
 
-            post{
-                try {
-                    val enterprise = call.receive<Enterprise>()
-                    enterpriseFacade.createEnterprise(enterprise)
-                    call.respond(HttpStatusCode.Created, enterprise)
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid UUID format")
-                } catch (ex: JsonConvertException) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid JSON format")
+            post {
+                call.handlePostRequest<Enterprise> { enterpriseFacade.createEnterprise(it) }
+            }
+
+            route("/get") {
+                get("/{id}") {
+                    call.handleGetRequest { enterpriseFacade.getEnterprise(it) }
+                }
+                get("/by-bank/{id}") {
+                    call.handleGetEntitiesByRequest { enterpriseFacade.getEnterprisesByBank(it) }
                 }
             }
 
-            get("/byId/{enterpriseId}") {
-                val enterpriseIdString = call.parameters["enterpriseId"]
-                if (enterpriseIdString == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
+            route("/update") {
+                put("/legal-name/{id}") {
+                    val updatedEnterprise = call.receive<Enterprise>()
+                    call.handlePutRequest<Enterprise, String>(
+                        updateEntity = { id, legalName -> enterpriseFacade.updateEnterpriseLegalName(id, legalName) },
+                        updatedField = updatedEnterprise.legalName
+                    )
                 }
-
-                try {
-                    val enterpriseId = UUID.fromString(enterpriseIdString)
-                    val enterprise = enterpriseFacade.getEnterpriseById(enterpriseId)
-
-                    if (enterprise == null) {
-                        call.respond(HttpStatusCode.NotFound, "Enterprise not found")
-                    } else {
-                        call.respond(HttpStatusCode.OK, enterprise)
-                    }
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Incorrect UUID")
+                put("/legal-adress/{id}") {
+                    val updatedEnterprise = call.receive<Enterprise>()
+                    call.handlePutRequest<Enterprise, String>(
+                        updateEntity = { id, legalAdress -> enterpriseFacade.updateEnterpriseLegalAdress(id, legalAdress) },
+                        updatedField = updatedEnterprise.legalAdress
+                    )
                 }
             }
 
-            get("/byUBN/{bankUBN}") {
-                val bankUBNString = call.parameters["bankUBN"]
-                if (bankUBNString == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@get
-                }
-
-                try {
-                    val bankUBN = UUID.fromString(bankUBNString)
-                    val enterprisesList = enterpriseFacade.getAllBankEnterprises(bankUBN)
-
-                    if (enterprisesList.isEmpty()) {
-                        call.respond(HttpStatusCode.NotFound, "Enterprises not found")
-                    } else {
-                        call.respond(HttpStatusCode.OK, enterprisesList)
-                    }
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.BadRequest, "Incorrect UUID")
-                }
-            }
-
-            put("/legalName/{enterpriseId}") {
-                val accountId = UUID.fromString(call.parameters["enterpriseId"])
-                val updatedEnterprise = call.receive<Enterprise>()
-
-                try {
-                    val result = enterpriseFacade.updateEnterpriseLegalName(accountId, updatedEnterprise.legalName)
-                    call.respond(HttpStatusCode.OK, result)
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.NotFound, "Enterprise with this id not found")
-                }
-            }
-
-            put("/bankUBN/{enterpriseId}") {
-                val accountId = UUID.fromString(call.parameters["enterpriseId"])
-                val updatedEnterprise = call.receive<Enterprise>()
-
-                try {
-                    val result = enterpriseFacade.updateEnterpriseBankUBN(accountId, updatedEnterprise.bankUBN)
-                    call.respond(HttpStatusCode.OK, result)
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.NotFound, "Enterprise with this id not found")
-                }
-            }
-
-            put("/legalAdress/{enterpriseId}") {
-                val accountId = UUID.fromString(call.parameters["enterpriseId"])
-                val updatedEnterprise = call.receive<Enterprise>()
-
-                try {
-                    val result = enterpriseFacade.updateEnterpriseLegalAdress(accountId, updatedEnterprise.legalAdress)
-                    call.respond(HttpStatusCode.OK, result)
-                } catch (ex: IllegalArgumentException) {
-                    call.respond(HttpStatusCode.NotFound, "Enterprise with this id not found")
-                }
-            }
-
-            delete("/{enterpriseId}") {
-                val enterpriseId = UUID.fromString(call.parameters["enterpriseId"])
-                if (enterpriseId == null) {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@delete
-                }
-
-                if (enterpriseFacade.deleteEnterprise(enterpriseId)) {
-                    call.respond(HttpStatusCode.NoContent, "Enterprise deleted successfully")
-                } else {
-                    call.respond(HttpStatusCode.NotFound, "Enterprise not found")
-                }
+            delete("/{id}") {
+                call.handleDeleteRequest { enterpriseFacade.deleteEnterprise(it) }
             }
         }
     }

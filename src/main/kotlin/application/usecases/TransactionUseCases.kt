@@ -1,25 +1,22 @@
 package com.example.usecases
 
-import com.example.domain.TransactionType
+import com.example.application.usecases.base.*
 import com.example.domain.entities.Transaction
 import com.example.domain.repositories.TransactionRepository
+import com.example.domain.repositories.base.ImmutableRepository
 import java.util.*
 
 class CreateTransactionUseCase(
-    private val transactionRepository: TransactionRepository
-) {
-    suspend fun execute(transaction: Transaction) {
-        transactionRepository.createTransaction(transaction)
-    }
-}
+    transactionRepository: TransactionRepository
+) : ImmutableCreateUseCase<Transaction>(transactionRepository)
 
-class GetTransactionByIdUseCase(
-    private val transactionRepository: TransactionRepository
-) {
-    suspend fun execute(transactionId: UUID): Transaction? {
-        return transactionRepository.getTransactionById(transactionId)
-    }
-}
+class GetTransactionUseCase(
+    transactionRepository: TransactionRepository
+) : ImmutableGetUseCase<Transaction>(transactionRepository)
+
+class DeleteTransactionUseCase(
+    transactionRepository: ImmutableRepository<Transaction>
+) : ImmutableDeleteUseCase<Transaction>(transactionRepository)
 
 class GetTransactionsByAccountUseCase(
     private val transactionRepository: TransactionRepository
@@ -34,22 +31,5 @@ class GetTransactionsByBankUseCase(
 ) {
     suspend fun execute(bankUBN: UUID): List<Transaction> {
         return transactionRepository.getTransactionsByBank(bankUBN)
-    }
-}
-
-class DeleteTransactionUseCase(
-    private val transactionRepository: TransactionRepository
-) {
-    suspend fun execute(transactionId: UUID): Boolean {
-        val transaction = transactionRepository.getTransactionById(transactionId)
-            ?: throw IllegalArgumentException("Transaction not found")
-
-        if (transaction.type != TransactionType.WITHDRAWAL) {
-            transactionRepository.deleteTransaction(transactionId)
-            return true
-        }
-        else {
-            return false
-        }
     }
 }

@@ -1,19 +1,22 @@
-package com.example.adapters.repositories
+package com.example.adapters.repositories.requests
 
+import com.example.adapters.repositories.BanksTable
+import com.example.adapters.repositories.suspendTransaction
 import com.example.domain.ClientCountry
 import com.example.domain.RequestStatus
 import com.example.domain.entities.requests.ClientRegistrationRequest
-import com.example.domain.repositories.requests.RequestRepository
+import com.example.domain.repositories.common.RequestRepository
+import com.example.domain.repositories.base.ImmutableRepository
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
-import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.update
 import java.util.*
 
 object ClientRegistrationRequestsTable : IntIdTable("client_registration_requests") {
@@ -76,53 +79,59 @@ class ClientRegistrationRequestRepositoryImpl
     : RequestRepository<ClientRegistrationRequest> {
 
     init {
-        Database.connect(
-            url = "jdbc:postgresql://localhost:5432/bank_db",
-            driver = "org.postgresql.Driver",
-            user = "postgres",
-            password = "625100"
-        )
-
         transaction {
             SchemaUtils.create(ClientRegistrationRequestsTable)
         }
     }
 
-    override suspend fun createRequest(request: ClientRegistrationRequest): Unit = suspendTransaction {
-        if (getRequest(request.requestId) != null) {
-            ClientRegistrationRequestDAO.new {
-                bankUBN = request.bankUBN
-                FIO = request.FIO
-                passportSeries = request.passportSeries
-                passportNumber = request.passportNumber
-                phone = request.phone
-                email = request.email
-                password = request.password
-                country = request.country
-                requestStatus = request.requestStatus
-                requestId = request.requestId
-            }
+    override suspend fun create(entity: ClientRegistrationRequest): Unit = suspendTransaction {
+        ClientRegistrationRequestDAO.new {
+            bankUBN = entity.bankUBN
+            FIO = entity.FIO
+            passportSeries = entity.passportSeries
+            passportNumber = entity.passportNumber
+            phone = entity.phone
+            email = entity.email
+            password = entity.password
+            country = entity.country
+            requestStatus = entity.requestStatus
+            requestId = entity.requestId
         }
     }
 
-    override suspend fun getRequest(requestId: UUID): ClientRegistrationRequest? = suspendTransaction {
+    override suspend fun get(id: UUID): ClientRegistrationRequest? = suspendTransaction {
         ClientRegistrationRequestDAO
-            .find { ClientRegistrationRequestsTable.requestId eq requestId }
+            .find { ClientRegistrationRequestsTable.requestId eq id }
             .limit(1)
             .map(::daoToModel)
             .firstOrNull()
+    }
+
+    override suspend fun update(entity: ClientRegistrationRequest): ClientRegistrationRequest = suspendTransaction {
+        ClientRegistrationRequestsTable.update({ ClientRegistrationRequestsTable.requestId eq entity.requestId }) {
+            it[FIO] = entity.FIO
+            it[passportSeries] = entity.passportSeries
+            it[passportNumber] = entity.passportNumber
+            it[phone] = entity.phone
+            it[email] = entity.email
+            it[password] = entity.password
+            it[country] = entity.country
+            it[requestStatus] = entity.requestStatus
+            it[requestId] = entity.requestId
+        }
+        entity
+    }
+
+    override suspend fun delete(id: UUID): Boolean = suspendTransaction {
+        val rowsDeleted = ClientRegistrationRequestsTable.deleteWhere {
+            ClientRegistrationRequestsTable.requestId eq id
+        }
+        rowsDeleted == 1
     }
 
     override suspend fun getRequestsByBank(bankUBN: UUID): List<ClientRegistrationRequest> = suspendTransaction {
         ClientRegistrationRequestDAO
             .find { ClientRegistrationRequestsTable.bankUBN eq bankUBN }
             .map(::daoToModel)
-    }
-
-    override suspend fun deleteRequest(requestId: UUID): Boolean = suspendTransaction {
-        val rowsDeleted = ClientRegistrationRequestsTable.deleteWhere {
-            ClientRegistrationRequestsTable.requestId eq requestId
-        }
-        rowsDeleted == 1
     }
 }

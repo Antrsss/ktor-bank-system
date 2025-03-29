@@ -2,8 +2,8 @@ package com.example.adapters.repositories
 
 import com.example.domain.TransactionType
 import com.example.domain.entities.Transaction
-import com.example.domain.repositories.SalaryProjectRepository
 import com.example.domain.repositories.TransactionRepository
+import com.example.domain.repositories.base.ImmutableRepository
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
@@ -16,7 +16,7 @@ import java.util.*
 object TransactionsTable : IntIdTable("transactions") {
     val senderAccountId = uuid("sender_account_id")
     val amount = double("amount")
-    val type = enumerationByName("type", 20, TransactionType::class)
+    val transactionType = enumerationByName("transaction_type", 20, TransactionType::class)
     val bankUBN = uuid("bank_ubn")
     val receiverAccountId = uuid("receiver_account_id").nullable()
     val transactionId = uuid("transaction_id")
@@ -26,7 +26,7 @@ fun ResultRow.toTransaction(): Transaction {
     return Transaction(
         senderAccountId = this[TransactionsTable.senderAccountId],
         amount = this[TransactionsTable.amount],
-        type = this[TransactionsTable.type],
+        transactionType = this[TransactionsTable.transactionType],
         bankUBN = this[TransactionsTable.bankUBN],
         receiverAccountId = this[TransactionsTable.receiverAccountId],
         transactionId = this[TransactionsTable.transactionId],
@@ -38,17 +38,16 @@ class TransactionsDAO(id: EntityID<Int>) : IntEntity(id) {
 
     var senderAccountId by TransactionsTable.senderAccountId
     var amount by TransactionsTable.amount
-    var type by TransactionsTable.type
+    var transactionType by TransactionsTable.transactionType
     var bankUBN by TransactionsTable.bankUBN
     var receiverAccountId by TransactionsTable.receiverAccountId
     var transactionId by TransactionsTable.transactionId
 }
 
-// Преобразование DAO в модель
 fun daoToModel(dao: TransactionsDAO) = Transaction(
     dao.senderAccountId,
     dao.amount,
-    dao.type,
+    dao.transactionType,
     dao.bankUBN,
     dao.receiverAccountId,
     dao.transactionId,
@@ -57,35 +56,35 @@ fun daoToModel(dao: TransactionsDAO) = Transaction(
 class TransactionRepositoryImpl: TransactionRepository {
 
     init {
-        Database.connect(
-            url = "jdbc:postgresql://localhost:5432/bank_db",
-            driver = "org.postgresql.Driver",
-            user = "postgres",
-            password = "625100"
-        )
-
         transaction {
             SchemaUtils.create(TransactionsTable)
         }
     }
 
-    override suspend fun createTransaction(transaction: Transaction): Unit = suspendTransaction {
+    override suspend fun create(entity: Transaction): Unit = suspendTransaction {
         TransactionsDAO.new {
-            transaction.senderAccountId
-            transaction.amount
-            transaction.type
-            transaction.bankUBN
-            transaction.receiverAccountId
-            transaction.transactionId
+            senderAccountId = entity.senderAccountId
+            amount = entity.amount
+            transactionType = entity.transactionType
+            bankUBN = entity.bankUBN
+            receiverAccountId = entity.receiverAccountId
+            transactionId = entity.transactionId
         }
     }
 
-    override suspend fun getTransactionById(transactionId: UUID): Transaction? = suspendTransaction {
+    override suspend fun get(id: UUID): Transaction? = suspendTransaction {
         TransactionsDAO
-            .find{ (TransactionsTable.transactionId eq transactionId) }
+            .find{ (TransactionsTable.transactionId eq id) }
             .limit(1)
             .map(::daoToModel)
             .firstOrNull()
+    }
+
+    override suspend fun delete(id: UUID): Boolean = suspendTransaction {
+        val rowsDeleted = TransactionsTable.deleteWhere {
+            TransactionsTable.transactionId eq id
+        }
+        rowsDeleted == 1
     }
 
     override suspend fun getTransactionsByAccount(accountId: UUID): List<Transaction> = suspendTransaction {
@@ -98,12 +97,5 @@ class TransactionRepositoryImpl: TransactionRepository {
         TransactionsDAO
             .find{ (TransactionsTable.bankUBN eq bankUBN) }
             .map(::daoToModel)
-    }
-
-    override suspend fun deleteTransaction(transactionId: UUID): Boolean = suspendTransaction {
-        val rowsDeleted = TransactionsTable.deleteWhere {
-            TransactionsTable.transactionId eq transactionId
-        }
-        rowsDeleted == 1
     }
 }

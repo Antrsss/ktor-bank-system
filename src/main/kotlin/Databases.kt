@@ -12,11 +12,11 @@ import io.ktor.server.routing.*
 import java.sql.Connection
 import java.sql.DriverManager
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Application.configureDatabases() {
     Database.connect(
-        "jdbc:postgresql://localhost:5432/bank_db",
+        url = "jdbc:postgresql://localhost:5432/bank_db",
+        driver = "org.postgresql.Driver",
         user = "postgres",
         password = "625100"
     )
